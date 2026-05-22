@@ -181,31 +181,31 @@ The pipeline includes a live monitoring dashboard tracking:
 ## Sample Athena Queries
 
 **Latest price for each coin:**
-​```sql
+```sql
 SELECT coin, price_usd, change_24h, timestamp
 FROM raw
 WHERE timestamp = (SELECT MAX(timestamp) FROM raw)
 ORDER BY coin;
-​```
+```
 
 **Average price per coin:**
-​```sql
+```sql
 SELECT coin,
        ROUND(AVG(price_usd), 2) AS avg_price,
        ROUND(MIN(price_usd), 2) AS min_price,
        ROUND(MAX(price_usd), 2) AS max_price
 FROM raw
 GROUP BY coin;
-​```
+```
 
 **Records per hour:**
-​```sql
+```sql
 SELECT DATE_TRUNC('hour', timestamp) AS hour,
        COUNT(*) AS record_count
 FROM raw
 GROUP BY 1
 ORDER BY 1 DESC;
-​```
+```
 
 ![Athena](images/AthenaQuery.png)
 
