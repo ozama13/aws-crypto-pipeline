@@ -78,35 +78,70 @@ Thresholds are configurable in `consumer/lambda_function.py`.
 
 ## Project Structure
 
-aws-crypto-pipeline/
+                                  aws-crypto-pipeline
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                               PROJECT STRUCTURE                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+📦 aws-crypto-pipeline
 │
-├── infrastructure/                  # Infrastructure as Code
-│   └── template.yaml                # CloudFormation template for full AWS stack
+├── 📁 infrastructure
+│   └── 📄 template.yaml
+│       └─ CloudFormation Infrastructure-as-Code template
+│          Deploys:
+│          • Lambda Functions
+│          • Kinesis Stream
+│          • DynamoDB
+│          • SNS
+│          • S3
+│          • Glue & Athena
 │
-├── producer/                        # Data ingestion layer
-│   └── lambda_function.py           # Fetches BTC, ETH, SOL prices from CoinGecko API
-│                                    # Pushes records into Kinesis Data Stream
+├── 📁 producer
+│   └── 📄 lambda_function.py
+│       └─ Data ingestion Lambda
+│          • Polls CoinGecko API
+│          • Fetches BTC / ETH / SOL prices
+│          • Pushes streaming records to Kinesis
 │
-├── consumer/                        # Real-time stream processing
-│   └── lambda_function.py           # Reads Kinesis records
-│                                    # Stores data in DynamoDB
-│                                    # Sends SNS alerts on price threshold changes
+├── 📁 consumer
+│   └── 📄 lambda_function.py
+│       └─ Stream processing Lambda
+│          • Reads Kinesis events
+│          • Transforms records
+│          • Writes to DynamoDB
+│          • Triggers SNS alerts for thresholds
 │
-├── archiver/                        # Historical data archival
-│   └── lambda_function.py           # Reads DynamoDB records hourly
-│                                    # Converts data to Parquet
-│                                    # Writes partitioned files to S3
+├── 📁 archiver
+│   └── 📄 lambda_function.py
+│       └─ Historical archival Lambda
+│          • Reads DynamoDB data hourly
+│          • Converts records to Parquet
+│          • Stores partitioned files in S3
 │
-├── images/                          # Project screenshots & architecture visuals
-│   ├── Architecture.png             # End-to-end AWS architecture diagram
-│   ├── Dashboard.png                # CloudWatch operational dashboard
-│   ├── DynamoDB.png                 # DynamoDB real-time records
-│   ├── AthenaQuery.png              # Athena SQL query results
-│   ├── SNS.png                      # SNS email notification example
-│   ├── Stream.png                   # Kinesis stream metrics/monitoring
-│   └── Glue.png                     # Glue crawler/catalog results
+├── 📁 images
+│   ├── 🖼️ Architecture.png
+│   │   └─ AWS architecture diagram
+│   │
+│   ├── 🖼️ Dashboard.png
+│   │   └─ CloudWatch monitoring dashboard
+│   │
+│   ├── 🖼️ DynamoDB.png
+│   │   └─ Real-time DynamoDB records
+│   │
+│   ├── 🖼️ AthenaQuery.png
+│   │   └─ Athena SQL query results
+│   │
+│   ├── 🖼️ SNS.png
+│   │   └─ SNS email notification example
+│   │
+│   ├── 🖼️ Stream.png
+│   │   └─ Kinesis stream metrics and monitoring
+│   │
+│   └── 🖼️ Glue.png
+│       └─ Glue crawler and schema catalog results
 │
-└── README.md                        # Project overview, setup instructions, architecture, and demo
+└── 📄 README.md
+  
 ---
 
 ## Setup & Deployment
