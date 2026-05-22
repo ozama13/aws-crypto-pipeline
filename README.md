@@ -2,8 +2,6 @@
 
 An event-driven, serverless data pipeline that streams live cryptocurrency prices from the CoinGecko API into AWS, detects anomalies, and triggers real-time email alerts — deployed as Infrastructure as Code using AWS CloudFormation.
 
-![Architecture Diagram](images/Architecture.png)
-
 ## Table of Contents
 - [Business Problem](#business-problem)
 - [Architecture Overview](#architecture-overview)
@@ -28,7 +26,6 @@ Financial and operations teams need real-time visibility into asset price moveme
 
 ## Architecture Overview
 
-​```
 ![Architecture Diagram](images/Architecture.png)
 
 ![Kinesis Monitoring](images/Stream.png)
