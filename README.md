@@ -4,6 +4,20 @@ An event-driven, serverless data pipeline that streams live cryptocurrency price
 
 ![Architecture Diagram](images/Architecture.png)
 
+## Table of Contents
+- [Business Problem](#business-problem)
+- [Architecture Overview](#architecture-overview)
+- [Tech Stack](#tech-stack)
+- [Features](#features)
+- [Anomaly Alert Thresholds](#anomaly-alert-thresholds)
+- [Project Structure](#project-structure)
+- [Setup & Deployment](#setup--deployment)
+- [CloudWatch Dashboard](#cloudwatch-dashboard)
+- [Data Model](#data-model)
+- [Sample Athena Queries](#sample-athena-queries)
+- [Lessons Learned](#lessons-learned)
+- [Author](#author)
+
 ---
 
 ## Business Problem
@@ -93,29 +107,24 @@ Thresholds are configurable in `consumer/lambda_function.py`.
 
 ## Project Structure
 
-​```
 aws-crypto-pipeline/
 ├── infrastructure/
-│   └── template.yaml            ← CloudFormation IaC (deploys full stack)
+│   └── template.yaml          ← CloudFormation IaC (deploys full stack)
 ├── producer/
-│   └── lambda_function.py       ← polls CoinGecko, pushes to Kinesis
+│   └── lambda_function.py     ← polls CoinGecko, pushes to Kinesis
 ├── consumer/
-│   └── lambda_function.py       ← reads Kinesis, writes DynamoDB, triggers SNS
+│   └── lambda_function.py     ← reads Kinesis, writes DynamoDB, triggers SNS
 ├── archiver/
-│   └── lambda_function.py       ← reads DynamoDB, writes Parquet to S3 hourly
+│   └── lambda_function.py     ← reads DynamoDB, writes Parquet to S3 hourly
 ├── images/
-│   ├── architecture.png         ← pipeline architecture 
-│   ├── Dashboard.png
-│   ├── DynamoDB.png
-│   ├── AthenaQuery.png
-│   ├── SNS.png
-│   ├── Stream.png
-│   └── Glue.png
-│   ├── cloudwatch_dashboard.png ← ops monitoring dashboard
-│   └── athena_query.png         ← sample Athena query results
+│   ├── Architecture.png       ← pipeline architecture diagram
+│   ├── Dashboard.png          ← CloudWatch ops monitoring dashboard
+│   ├── DynamoDB.png           ← DynamoDB table records
+│   ├── AthenaQuery.png        ← sample Athena query results
+│   ├── SNS.png                ← SNS alert email
+│   ├── Stream.png             ← Kinesis stream monitoring
+│   └── Glue.png               ← Glue crawler results
 └── README.md
-​```
-
 ---
 
 ## Setup & Deployment
