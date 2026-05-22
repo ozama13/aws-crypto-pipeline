@@ -77,71 +77,46 @@ Thresholds are configurable in `consumer/lambda_function.py`.
 ---
 
 ## Project Structure
+# 📦 aws-crypto-pipeline
 
-                                  aws-crypto-pipeline
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                               PROJECT STRUCTURE                            │
-└─────────────────────────────────────────────────────────────────────────────┘
+```text
+aws-crypto-pipeline/
+│
+├── infrastructure/
+│   └── template.yaml
+│
+├── producer/
+│   └── lambda_function.py
+│
+├── consumer/
+│   └── lambda_function.py
+│
+├── archiver/
+│   └── lambda_function.py
+│
+├── images/
+│   ├── Architecture.png
+│   ├── Dashboard.png
+│   ├── DynamoDB.png
+│   ├── AthenaQuery.png
+│   ├── SNS.png
+│   ├── Stream.png
+│   └── Glue.png
+│
+└── README.md
+```
 
-📦 aws-crypto-pipeline
-│
-├── 📁 infrastructure
-│   └── 📄 template.yaml
-│       └─ CloudFormation Infrastructure-as-Code template
-│          Deploys:
-│          • Lambda Functions
-│          • Kinesis Stream
-│          • DynamoDB
-│          • SNS
-│          • S3
-│          • Glue & Athena
-│
-├── 📁 producer
-│   └── 📄 lambda_function.py
-│       └─ Data ingestion Lambda
-│          • Polls CoinGecko API
-│          • Fetches BTC / ETH / SOL prices
-│          • Pushes streaming records to Kinesis
-│
-├── 📁 consumer
-│   └── 📄 lambda_function.py
-│       └─ Stream processing Lambda
-│          • Reads Kinesis events
-│          • Transforms records
-│          • Writes to DynamoDB
-│          • Triggers SNS alerts for thresholds
-│
-├── 📁 archiver
-│   └── 📄 lambda_function.py
-│       └─ Historical archival Lambda
-│          • Reads DynamoDB data hourly
-│          • Converts records to Parquet
-│          • Stores partitioned files in S3
-│
-├── 📁 images
-│   ├── 🖼️ Architecture.png
-│   │   └─ AWS architecture diagram
-│   │
-│   ├── 🖼️ Dashboard.png
-│   │   └─ CloudWatch monitoring dashboard
-│   │
-│   ├── 🖼️ DynamoDB.png
-│   │   └─ Real-time DynamoDB records
-│   │
-│   ├── 🖼️ AthenaQuery.png
-│   │   └─ Athena SQL query results
-│   │
-│   ├── 🖼️ SNS.png
-│   │   └─ SNS email notification example
-│   │
-│   ├── 🖼️ Stream.png
-│   │   └─ Kinesis stream metrics and monitoring
-│   │
-│   └── 🖼️ Glue.png
-│       └─ Glue crawler and schema catalog results
-│
-└── 📄 README.md
-  
+## 📁 Folder Overview
+
+| Folder/File | Description |
+|---|---|
+| `infrastructure/` | CloudFormation Infrastructure-as-Code templates |
+| `producer/` | Lambda function that polls CoinGecko and streams data to Kinesis |
+| `consumer/` | Lambda function that processes Kinesis records and writes to DynamoDB |
+| `archiver/` | Lambda function that archives DynamoDB data to S3 in Parquet format |
+| `images/` | Architecture diagrams, dashboards, and AWS service screenshots |
+| `README.md` | Project documentation and setup instructions |
+
 ---
 
 ## Setup & Deployment
