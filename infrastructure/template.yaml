@@ -1,0 +1,199 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Real-time crypto price streaming pipeline
+
+Parameters:
+  AccountId:
+    Type: String
+    Description: Your AWS Account ID
+  AlertEmail:
+    Type: String
+    Description: Email address for crypto alerts
+
+Resources:
+
+  # Kinesis Stream
+  CryptoPriceStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: crypto-price-stream
+      StreamModeDetails:
+        StreamMode: ON_DEMAND
+
+  # DynamoDB Table
+  CryptoPricesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: crypto-prices
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: coin
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+      KeySchema:
+        - AttributeName: coin
+          KeyType: HASH
+        - AttributeName: timestamp
+          KeyType: RANGE
+
+  # SNS Topic
+  CryptoAlertsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: crypto-alerts
+      Subscription:
+        - Protocol: email
+          Endpoint: !Ref AlertEmail
+
+  # IAM Role for Lambda
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: crypto-pipeline-lambda-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AmazonKinesisFullAccess
+        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+        - arn:aws:iam::aws:policy/AmazonSNSFullAccess
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaKinesisExecutionRole
+
+  # Producer Lambda
+  CryptoProducerLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: crypto-producer
+      Runtime: python3.12
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import urllib.request
+          import datetime
+
+          kinesis = boto3.client('kinesis', region_name='us-east-1')
+          STREAM_NAME = 'crypto-price-stream'
+          COINS = 'bitcoin,ethereum,solana'
+
+          def lambda_handler(event, context):
+              url = (
+                  f"https://api.coingecko.com/api/v3/simple/price"
+                  f"?ids={COINS}&vs_currencies=usd"
+                  f"&include_24hr_change=true&include_market_cap=true"
+              )
+              with urllib.request.urlopen(url) as response:
+                  data = json.loads(response.read())
+              timestamp = datetime.datetime.utcnow().isoformat()
+              records = []
+              for coin, metrics in data.items():
+                  record = {
+                      "coin": coin,
+                      "price_usd": metrics["usd"],
+                      "change_24h": metrics["usd_24h_change"],
+                      "market_cap": metrics["usd_market_cap"],
+                      "timestamp": timestamp
+                  }
+                  records.append({
+                      "Data": json.dumps(record).encode("utf-8"),
+                      "PartitionKey": coin
+                  })
+              kinesis.put_records(StreamName=STREAM_NAME, Records=records)
+              print(f"Pushed {len(records)} records at {timestamp}")
+              return {"statusCode": 200}
+
+  # Consumer Lambda
+  CryptoConsumerLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: crypto-consumer
+      Runtime: python3.12
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import base64
+          from decimal import Decimal
+
+          dynamodb = boto3.resource('dynamodb', region_name='us-east-1').Table('crypto-prices')
+          sns = boto3.client('sns', region_name='us-east-1')
+          SNS_TOPIC_ARN = 'arn:aws:sns:us-east-1:YOUR_ACCOUNT_ID:crypto-alerts'
+
+          THRESHOLDS = {
+              "bitcoin":  5.0,
+              "ethereum": 6.0,
+              "solana":   8.0
+          }
+
+          def lambda_handler(event, context):
+              for record in event['Records']:
+                  payload = json.loads(
+                      base64.b64decode(record['kinesis']['data']).decode('utf-8')
+                  )
+                  coin      = payload['coin']
+                  price     = payload['price_usd']
+                  change    = payload['change_24h']
+                  timestamp = payload['timestamp']
+                  dynamodb.put_item(Item={
+                      "coin":       coin,
+                      "timestamp":  timestamp,
+                      "price_usd":  Decimal(str(price)),
+                      "change_24h": Decimal(str(round(change, 4))),
+                      "market_cap": Decimal(str(payload['market_cap']))
+                  })
+                  threshold = THRESHOLDS.get(coin, 5.0)
+                  if abs(change) >= threshold:
+                      direction = "UP" if change > 0 else "DOWN"
+                      sns.publish(
+                          TopicArn=SNS_TOPIC_ARN,
+                          Subject=f"Crypto Alert: {coin.upper()} moved {direction}",
+                          Message=(
+                              f"Coin:       {coin.upper()}\n"
+                              f"Price:      ${price:,.2f}\n"
+                              f"24h Change: {change:.2f}%\n"
+                              f"Threshold:  +-{threshold}%\n"
+                              f"Time:       {timestamp}"
+                          )
+                      )
+                      print(f"ALERT sent for {coin}: {change:.2f}%")
+              return {"statusCode": 200}
+
+  # Kinesis Trigger for Consumer
+  KinesisTrigger:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt CryptoPriceStream.Arn
+      FunctionName: !GetAtt CryptoConsumerLambda.Arn
+      StartingPosition: LATEST
+      BatchSize: 3
+
+  # EventBridge Schedule
+  CryptoSchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: crypto-producer-schedule
+      ScheduleExpression: "rate(5 minutes)"
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt CryptoProducerLambda.Arn
+          Id: CryptoProducerTarget
+
+  # Permission for EventBridge to invoke Lambda
+  EventBridgePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref CryptoProducerLambda
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt CryptoSchedule.Arn
