@@ -29,32 +29,6 @@ Financial and operations teams need real-time visibility into asset price moveme
 ## Architecture Overview
 
 ​```
-CoinGecko API
-     ↓  (polled every 5 minutes)
-EventBridge Scheduler
-     ↓
-Lambda Producer       ← fetches BTC, ETH, SOL prices
-     ↓
-Kinesis Data Stream   ← crypto-price-stream (on-demand)
-     ↓
-Lambda Consumer       ← transforms records, checks thresholds
-     ├──→ DynamoDB    ← real-time record storage (crypto-prices table)
-     └──→ SNS Topic   ← triggers email alert if price change ≥ threshold
-          ↓
-     Email Alert
-
-EventBridge Scheduler (hourly)
-     ↓
-Lambda Archiver       ← reads DynamoDB, writes Parquet to S3
-     ↓
-S3 Data Lake          ← partitioned by year/month/day/hour
-     ↓
-Glue Crawler          ← auto-catalogs schema hourly
-     ↓
-Athena                ← SQL queries on historical data
-
-CloudWatch            ← monitors all Lambda functions and Kinesis
-​```
 ![Architecture Diagram](images/Architecture.png)
 
 ![Kinesis Monitoring](images/Stream.png)
@@ -108,23 +82,34 @@ Thresholds are configurable in `consumer/lambda_function.py`.
 ## Project Structure
 
 aws-crypto-pipeline/
-├── infrastructure/
-│   └── template.yaml          ← CloudFormation IaC (deploys full stack)
-├── producer/
-│   └── lambda_function.py     ← polls CoinGecko, pushes to Kinesis
-├── consumer/
-│   └── lambda_function.py     ← reads Kinesis, writes DynamoDB, triggers SNS
-├── archiver/
-│   └── lambda_function.py     ← reads DynamoDB, writes Parquet to S3 hourly
-├── images/
-│   ├── Architecture.png       ← pipeline architecture diagram
-│   ├── Dashboard.png          ← CloudWatch ops monitoring dashboard
-│   ├── DynamoDB.png           ← DynamoDB table records
-│   ├── AthenaQuery.png        ← sample Athena query results
-│   ├── SNS.png                ← SNS alert email
-│   ├── Stream.png             ← Kinesis stream monitoring
-│   └── Glue.png               ← Glue crawler results
-└── README.md
+│
+├── infrastructure/                  # Infrastructure as Code
+│   └── template.yaml                # CloudFormation template for full AWS stack
+│
+├── producer/                        # Data ingestion layer
+│   └── lambda_function.py           # Fetches BTC, ETH, SOL prices from CoinGecko API
+│                                    # Pushes records into Kinesis Data Stream
+│
+├── consumer/                        # Real-time stream processing
+│   └── lambda_function.py           # Reads Kinesis records
+│                                    # Stores data in DynamoDB
+│                                    # Sends SNS alerts on price threshold changes
+│
+├── archiver/                        # Historical data archival
+│   └── lambda_function.py           # Reads DynamoDB records hourly
+│                                    # Converts data to Parquet
+│                                    # Writes partitioned files to S3
+│
+├── images/                          # Project screenshots & architecture visuals
+│   ├── Architecture.png             # End-to-end AWS architecture diagram
+│   ├── Dashboard.png                # CloudWatch operational dashboard
+│   ├── DynamoDB.png                 # DynamoDB real-time records
+│   ├── AthenaQuery.png              # Athena SQL query results
+│   ├── SNS.png                      # SNS email notification example
+│   ├── Stream.png                   # Kinesis stream metrics/monitoring
+│   └── Glue.png                     # Glue crawler/catalog results
+│
+└── README.md                        # Project overview, setup instructions, architecture, and demo
 ---
 
 ## Setup & Deployment
