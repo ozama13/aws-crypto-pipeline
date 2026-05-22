@@ -77,7 +77,6 @@ Thresholds are configurable in `consumer/lambda_function.py`.
 ---
 
 ## Project Structure
-# 📦 aws-crypto-pipeline
 
 ```text
 aws-crypto-pipeline/
